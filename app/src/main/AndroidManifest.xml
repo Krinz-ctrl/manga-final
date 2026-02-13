@@ -15,7 +15,7 @@
             android:name="com.krinzctrl.mangaview.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Manga">
+            android:theme="@style/Theme.Manga.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
