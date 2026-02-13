@@ -39,18 +39,11 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Background)
     ) {
-        if (mangaList.isEmpty() && !isLoading) {
-            EmptyState(
-                onImportClick = viewModel::onImportClicked,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        } else {
-            MangaGrid(
-                mangaList = mangaList,
-                onMangaClick = onMangaClick,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+        // Show empty state for testing
+        EmptyState(
+            onImportClick = viewModel::onImportClicked,
+            modifier = Modifier.align(Alignment.Center)
+        )
         
         FloatingActionButton(
             onClick = viewModel::onImportClicked,
@@ -61,16 +54,11 @@ fun HomeScreen(
             containerColor = Color.White.copy(alpha = 0.1f),
             contentColor = WhitePrimary
         ) {
-            var rotation by remember { mutableStateOf(0f) }
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Import",
-                modifier = Modifier.rotate(rotation)
+                modifier = Modifier.rotate(90f)
             )
-            
-            LaunchedEffect(Unit) {
-                rotation = 90f
-            }
         }
         
         if (showImportSheet) {

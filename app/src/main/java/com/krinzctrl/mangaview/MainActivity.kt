@@ -3,18 +3,18 @@ package com.krinzctrl.mangaview
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.krinzctrl.mangaview.ui.home.HomeScreen
-import com.krinzctrl.mangaview.ui.reader.ReaderScreen
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.krinzctrl.mangaview.ui.theme.MangaViewTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,45 +22,51 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MangaViewTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
                 ) {
-                    MangaNavigation()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "Tap + to import manga",
+                            color = Color.White.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    
+                    FloatingActionButton(
+                        onClick = { },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(24.dp)
+                            .size(56.dp),
+                        containerColor = Color.White.copy(alpha = 0.1f),
+                        contentColor = Color.White
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Import",
+                            modifier = Modifier.rotate(90f)
+                        )
+                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun MangaNavigation() {
-    val navController = rememberNavController()
-    
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
-        composable("home") {
-            HomeScreen(
-                onMangaClick = { mangaId ->
-                    navController.navigate("reader/$mangaId")
-                }
-            )
-        }
-        
-        composable(
-            route = "reader/{mangaId}",
-            arguments = listOf(
-                navArgument("mangaId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val mangaId = backStackEntry.arguments?.getString("mangaId") ?: return@composable
-            
-            ReaderScreen(
-                mangaId = mangaId,
-                onBack = { navController.navigateUp() }
-            )
         }
     }
 }
