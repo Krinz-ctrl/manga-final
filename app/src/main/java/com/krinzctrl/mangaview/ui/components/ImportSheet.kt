@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,7 +49,7 @@ fun ImportSheet(
         ) {
             ImportOption(
                 text = "Import Manga File",
-                icon = Icons.Default.CreateNewFolder,
+                icon = Icons.Default.Add,
                 onClick = {
                     onImport()
                     onDismiss()
