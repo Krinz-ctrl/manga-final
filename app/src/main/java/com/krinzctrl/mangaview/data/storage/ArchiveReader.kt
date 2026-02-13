@@ -3,6 +3,8 @@ package com.krinzctrl.mangaview.data.storage
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -20,45 +22,32 @@ class ArchiveReader(private val context: Context) {
     
     private val supportedExtensions = setOf(".jpg", ".jpeg", ".png", ".webp")
     
-    fun extractThumbnail(encryptedStream: InputStream): String? {
-        return try {
-            val pages = streamPages(encryptedStream)
-            if (pages.isEmpty()) return null
-            
-            val firstPage = pages.first()
-            val thumbnailPath = generateThumbnail(firstPage, encryptedStream)
-            thumbnailPath
-        } catch (e: Exception) {
-            null
-        }
-    }
-    
     fun streamPages(encryptedStream: InputStream): List<PageRef> {
-        val pages = mutableListOf<PageRef>()
-        var pageNumber = 0
-        
-        try {
-            ZipInputStream(encryptedStream).use { zipStream ->
-                var entry: ZipEntry? = zipStream.nextEntry
-                while (entry != null) {
-                    if (!entry.isDirectory && isImageFile(entry.name)) {
-                        pages.add(
-                            PageRef(
-                                id = "${entry.name}_$pageNumber",
-                                mangaId = "", // Will be set by caller
-                                pageNumber = pageNumber++,
-                                entryName = entry.name
-                            )
+        return try {
+            val zipStream = ZipInputStream(encryptedStream)
+            val pages = mutableListOf<PageRef>()
+            var entry: ZipEntry? = zipStream.nextEntry
+            var pageNumber = 1
+            
+            while (entry != null) {
+                val fileName = entry.name
+                if (isImageFile(fileName)) {
+                    pages.add(
+                        PageRef(
+                            id = fileName,
+                            mangaId = "",
+                            pageNumber = pageNumber++,
+                            entryName = fileName
                         )
-                    }
-                    entry = zipStream.nextEntry
+                    )
                 }
+                entry = zipStream.nextEntry
             }
+            
+            pages
         } catch (e: Exception) {
-            // Handle stream reset for thumbnail generation
+            emptyList()
         }
-        
-        return pages.sortedBy { it.pageNumber }
     }
     
     fun getPageStream(encryptedStream: InputStream, pageRef: PageRef): InputStream {
@@ -76,7 +65,7 @@ class ArchiveReader(private val context: Context) {
         }
     }
     
-    private fun generateThumbnail(pageRef: PageRef, encryptedStream: InputStream): String {
+    fun generateThumbnail(pageRef: PageRef, encryptedStream: InputStream): String {
         val pageStream = getPageStream(encryptedStream, pageRef)
         val bitmap = decodeBitmapForThumbnail(pageStream)
         

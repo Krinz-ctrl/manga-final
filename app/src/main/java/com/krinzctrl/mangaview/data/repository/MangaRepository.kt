@@ -9,7 +9,6 @@ import com.krinzctrl.mangaview.data.model.PageRef
 import com.krinzctrl.mangaview.data.storage.EncryptionManager
 import com.krinzctrl.mangaview.data.storage.FileStorageManager
 import com.krinzctrl.mangaview.data.storage.ArchiveReader
-import com.krinzctrl.mangaview.data.storage.FolderReader
 import com.krinzctrl.mangaview.data.storage.ThumbnailGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -60,14 +59,14 @@ class MangaRepository(
                 encryptionManager.encrypt(input, FileOutputStream(encryptedFile))
             }
             
-            // Step 3: Extract thumbnail
+            // Step3: Extract thumbnail
             val thumbnailFile = fileStorageManager.createThumbnailFile(mangaId)
             try {
                 FileInputStream(tempFile).use { input ->
                     val pages = archiveReader.streamPages(input)
                     if (pages.isNotEmpty()) {
                         val firstPage = pages.first()
-                        archiveReader.extractThumbnail(input, thumbnailFile)
+                        archiveReader.generateThumbnail(firstPage, input)
                     }
                 }
             } catch (e: Exception) {
@@ -117,13 +116,34 @@ class MangaRepository(
             )
             
             // Read images from folder
-            val imageFiles = FolderReader.readFolderImages(context, uri)
-            if (imageFiles.isEmpty()) {
-                return@withContext Result.failure(Exception("No images found in folder"))
-            }
+            val treeDocumentFile = DocumentFile.fromTreeUri(context, uri)
+                ?: return@withContext Result.failure(Exception("Failed to access folder"))
+                
+            val allFiles = treeDocumentFile?.listFiles()
+                ?: return@withContext Result.failure(Exception("Failed to list files"))
+                
+            // Filter only image files
+            val supportedImageTypes = setOf("image/jpeg", "image/jpg", "image/png", "image/webp")
+            val supportedExtensions = setOf(".jpg", ".jpeg", ".png", ".webp")
+            
+            val imageFiles = allFiles.filter { file ->
+                file.type?.let { type -> 
+                    supportedImageTypes.contains(type.lowercase())
+                } ?: false || 
+                        supportedExtensions.any { ext ->
+                            file.name?.lowercase()?.endsWith(ext) == true
+                        }
+                }
+                
+                // Sort by name ascending (001.jpg, 002.jpg, etc.)
+                val sortedFiles = imageFiles.sortedBy { it.name?.lowercase() ?: "" }
+                
+                if (sortedFiles.isEmpty()) {
+                    return@withContext Result.failure(Exception("No images found in folder"))
+                }
             
             // Generate thumbnail from first image
-            val firstImage = imageFiles.firstOrNull()
+            val firstImage = sortedFiles.firstOrNull()
             val thumbnailPath = if (firstImage != null) {
                 thumbnailGenerator.generateThumbnail(firstImage)
             } else {
@@ -137,10 +157,13 @@ class MangaRepository(
             val mangaEntity = MangaEntity(
                 id = mangaId,
                 title = folderName,
-                thumbnailPath = thumbnailPath,
-                pageCount = imageFiles.size,
+                thumbnailPath = thumbnailPath ?: "",
+                pageCount = sortedFiles.size,
                 folderUri = uri.toString(),
-                encryptedFilePath = null
+                encryptedFilePath = null,
+                addedDate = System.currentTimeMillis(),
+                lastReadDate = null,
+                currentPage = 0
             )
             
             // Add to library
@@ -162,10 +185,30 @@ class MangaRepository(
             val mangaEntity = _mangaLibrary.value.find { it.id == mangaId }
                 ?: return@withContext emptyList()
             
-            val folderUri = Uri.parse(mangaEntity.folderUri)
-            val imageFiles = FolderReader.readFolderImages(context, folderUri)
+            if (mangaEntity.folderUri.isEmpty()) {
+                return@withContext emptyList()
+            }
             
-            imageFiles.mapIndexed { index, file ->
+            val folderUri = Uri.parse(mangaEntity.folderUri)
+            val treeDocumentFile = DocumentFile.fromTreeUri(context, folderUri)
+            
+            val allFiles = treeDocumentFile?.listFiles()
+                ?: return@withContext emptyList()
+                
+            // Filter only image files
+            val imageFiles = allFiles.filter { file ->
+                file.type?.let { type -> 
+                    setOf("image/jpeg", "image/jpg", "image/png", "image/webp").contains(type.lowercase())
+                } ?: false || 
+                        setOf(".jpg", ".jpeg", ".png", ".webp").any { ext ->
+                            file.name?.lowercase()?.endsWith(ext) == true
+                        }
+                }
+            
+            // Sort by name ascending (001.jpg, 002.jpg, etc.)
+            val sortedFiles = imageFiles.sortedBy { it.name?.lowercase() ?: "" }
+            
+            sortedFiles.mapIndexed { index, file ->
                 PageRef(
                     id = file.uri.toString(),
                     mangaId = mangaId,
