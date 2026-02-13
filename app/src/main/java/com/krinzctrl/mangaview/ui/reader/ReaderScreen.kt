@@ -71,7 +71,7 @@ fun ReaderScreen(
                         val tapX = offset.x
                         val screenWidth = size.width
                         
-                        if (tapY < screenHeight * 0.2f) {
+                        if (tapY < screenHeight.value * 0.2f) {
                             onBack()
                         } else if (tapX > screenWidth * 0.8f) {
                             viewModel.nextPage()

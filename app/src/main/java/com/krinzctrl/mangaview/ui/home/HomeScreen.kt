@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -31,6 +32,7 @@ fun HomeScreen(
     val mangaList by viewModel.mangaList.collectAsState()
     val showImportSheet by viewModel.showImportSheet.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     
     Box(
         modifier = Modifier
@@ -75,14 +77,16 @@ fun HomeScreen(
             ImportSheet(
                 onDismiss = viewModel::onImportSheetDismissed,
                 onImport = { 
-                    viewModel.importManga(
-                        MangaModel(
-                            id = System.currentTimeMillis().toString(),
-                            title = "New Manga",
-                            thumbnailPath = "https://picsum.photos/seed/new/300/400.jpg",
-                            pageCount = 12
+                    coroutineScope.launch {
+                        viewModel.importManga(
+                            MangaModel(
+                                id = System.currentTimeMillis().toString(),
+                                title = "New Manga",
+                                thumbnailPath = "https://picsum.photos/seed/new/300/400.jpg",
+                                pageCount = 12
+                            )
                         )
-                    )
+                    }
                 }
             )
         }
