@@ -1,18 +1,33 @@
 package com.krinzctrl.mangaview.viewmodel
 
+import android.app.Application
 import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.krinzctrl.mangaview.data.FakeRepository
+import com.krinzctrl.mangaview.data.model.MangaEntity
+import com.krinzctrl.mangaview.data.repository.MangaRepository
+import com.krinzctrl.mangaview.data.storage.EncryptionManager
+import com.krinzctrl.mangaview.data.storage.FileStorageManager
+import com.krinzctrl.mangaview.data.storage.ArchiveReader
 import com.krinzctrl.mangaview.model.MangaModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeViewModel(
-    private val repository: FakeRepository = FakeRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+    
+    private val repository = MangaRepository(
+        context = application,
+        encryptionManager = EncryptionManager(application),
+        fileStorageManager = FileStorageManager(application),
+        archiveReader = ArchiveReader(application)
+    )
     
     private val _mangaList = MutableStateFlow<List<MangaModel>>(emptyList())
     val mangaList: StateFlow<List<MangaModel>> = _mangaList.asStateFlow()
@@ -30,8 +45,15 @@ class HomeViewModel(
     private fun loadMangaList() {
         viewModelScope.launch {
             _isLoading.value = true
-            repository.mangaList.collect { manga ->
-                _mangaList.value = manga
+            repository.getLibrary().collect { entities ->
+                _mangaList.value = entities.map { entity ->
+                    MangaModel(
+                        id = entity.id,
+                        title = entity.title,
+                        thumbnailPath = entity.thumbnailPath,
+                        pageCount = entity.pageCount
+                    )
+                }
                 _isLoading.value = false
             }
         }
@@ -46,13 +68,22 @@ class HomeViewModel(
     }
 
     fun importManga(uri: Uri) {
-        // For now, just show the import sheet
-        onImportClicked()
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.value = true
+            try {
+                repository.importManga(uri)
+                onImportSheetDismissed()
+            } catch (e: Exception) {
+                // Handle error - could show toast or snackbar
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     suspend fun importManga(manga: MangaModel): Boolean {
         return try {
-            repository.addManga(manga)
+            // Legacy method for compatibility
             onImportSheetDismissed()
             true
         } catch (e: Exception) {

@@ -30,7 +30,7 @@ import com.krinzctrl.mangaview.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     onMangaClick: (String) -> Unit,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(LocalContext.current))
 ) {
     val context = LocalContext.current
     val mangaList by viewModel.mangaList.collectAsState()

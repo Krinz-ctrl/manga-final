@@ -26,7 +26,7 @@ import kotlinx.coroutines.delay
 fun ReaderScreen(
     mangaId: String,
     onBack: () -> Unit,
-    viewModel: ReaderViewModel = viewModel()
+    viewModel: ReaderViewModel = viewModel(factory = ReaderViewModelFactory(LocalContext.current))
 ) {
     val pages by viewModel.pages.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
