@@ -3,18 +3,11 @@ package com.krinzctrl.mangaview
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -46,21 +39,7 @@ fun MangaNavigation() {
     
     NavHost(
         navController = navController,
-        startDestination = "home",
-        enterTransition = {
-            fadeIn(animationSpec = tween(300)) + 
-            scaleIn(
-                initialScale = 0.9f,
-                animationSpec = tween(300)
-            )
-        },
-        exitTransition = {
-            fadeOut(animationSpec = tween(300)) + 
-            scaleOut(
-                targetScale = 1.1f,
-                animationSpec = tween(300)
-            )
-        }
+        startDestination = "home"
     ) {
         composable("home") {
             HomeScreen(
