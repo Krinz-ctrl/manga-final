@@ -76,10 +76,17 @@ class HomeViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                repository.importFolder(uri)
-                onImportSheetDismissed()
+                val result = repository.importFolder(uri)
+                if (result.isSuccess) {
+                    onImportSheetDismissed()
+                    // Library will be updated automatically via Flow
+                } else {
+                    // Handle error - could show toast or snackbar
+                    result.exceptionOrNull()?.printStackTrace()
+                }
             } catch (e: Exception) {
                 // Handle error - could show toast or snackbar
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }
