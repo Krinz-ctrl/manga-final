@@ -47,7 +47,8 @@ class ReaderViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                val pageReferences = repository.openManga(mangaId)
+                // Try folder-based loading first
+                val pageReferences = repository.getFolderImages(mangaId)
                 _pageRefs.value = pageReferences
                 
                 // Convert to MangaPage for UI compatibility
@@ -56,7 +57,7 @@ class ReaderViewModel(
                         id = pageRef.id,
                         mangaId = pageRef.mangaId,
                         pageNumber = pageRef.pageNumber,
-                        imagePath = "stream://${pageRef.id}" // Special stream indicator
+                        imagePath = pageRef.imageUri // Direct URI for folder images
                     )
                 }
                 

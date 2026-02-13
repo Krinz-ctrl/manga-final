@@ -37,11 +37,11 @@ fun HomeScreen(
     val showImportSheet by viewModel.showImportSheet.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
-    // File picker launcher
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
+    // Folder picker launcher
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
-        uri?.let { viewModel.importManga(it) }
+        uri?.let { viewModel.importFolder(it) }
     }
     
     Box(
@@ -55,8 +55,11 @@ fun HomeScreen(
             modifier = Modifier.align(Alignment.Center)
         )
         
+        // FAB with folder picker
         FloatingActionButton(
-            onClick = { filePickerLauncher.launch(arrayOf("application/zip", "application/x-cbz")) },
+            onClick = { 
+                folderPickerLauncher.launch(null)
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
@@ -75,7 +78,7 @@ fun HomeScreen(
             ImportSheet(
                 onDismiss = viewModel::onImportSheetDismissed,
                 onImport = { 
-                    filePickerLauncher.launch(arrayOf("application/zip", "application/x-cbz"))
+                    folderPickerLauncher.launch(null)
                 }
             )
         }

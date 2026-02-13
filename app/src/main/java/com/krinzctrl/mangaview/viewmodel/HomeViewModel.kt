@@ -68,10 +68,15 @@ class HomeViewModel(
     }
 
     fun importManga(uri: Uri) {
+        // Legacy method for backward compatibility
+        importFolder(uri)
+    }
+    
+    fun importFolder(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                repository.importManga(uri)
+                repository.importFolder(uri)
                 onImportSheetDismissed()
             } catch (e: Exception) {
                 // Handle error - could show toast or snackbar
