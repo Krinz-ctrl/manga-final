@@ -1,5 +1,8 @@
 package com.krinzctrl.mangaview.ui.home
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -11,11 +14,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.krinzctrl.mangaview.model.MangaModel
@@ -29,10 +31,17 @@ fun HomeScreen(
     onMangaClick: (String) -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val mangaList by viewModel.mangaList.collectAsState()
     val showImportSheet by viewModel.showImportSheet.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
+    
+    // File picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.importManga(it) }
+    }
     
     Box(
         modifier = Modifier
@@ -46,7 +55,7 @@ fun HomeScreen(
         )
         
         FloatingActionButton(
-            onClick = viewModel::onImportClicked,
+            onClick = { filePickerLauncher.launch(arrayOf("application/zip", "application/x-cbz")) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
@@ -65,16 +74,7 @@ fun HomeScreen(
             ImportSheet(
                 onDismiss = viewModel::onImportSheetDismissed,
                 onImport = { 
-                    coroutineScope.launch {
-                        viewModel.importManga(
-                            MangaModel(
-                                id = System.currentTimeMillis().toString(),
-                                title = "New Manga",
-                                thumbnailPath = "https://picsum.photos/seed/new/300/400.jpg",
-                                pageCount = 12
-                            )
-                        )
-                    }
+                    filePickerLauncher.launch(arrayOf("application/zip", "application/x-cbz"))
                 }
             )
         }

@@ -1,17 +1,31 @@
 package com.krinzctrl.mangaview.viewmodel
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.krinzctrl.mangaview.data.FakeRepository
+import com.krinzctrl.mangaview.data.model.PageRef
+import com.krinzctrl.mangaview.data.repository.MangaRepository
+import com.krinzctrl.mangaview.data.storage.EncryptionManager
+import com.krinzctrl.mangaview.data.storage.FileStorageManager
+import com.krinzctrl.mangaview.data.storage.ArchiveReader
 import com.krinzctrl.mangaview.model.MangaPage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.InputStream
 
 class ReaderViewModel(
-    private val repository: FakeRepository = FakeRepository()
+    application: Application
 ) : ViewModel() {
+    
+    private val repository = MangaRepository(
+        context = application,
+        encryptionManager = EncryptionManager(application),
+        fileStorageManager = FileStorageManager(application),
+        archiveReader = ArchiveReader(application)
+    )
     
     private val _currentPage = MutableStateFlow(0)
     val currentPage: StateFlow<Int> = _currentPage.asStateFlow()
@@ -19,6 +33,7 @@ class ReaderViewModel(
     private val _pages = MutableStateFlow<List<MangaPage>>(emptyList())
     val pages: StateFlow<List<MangaPage>> = _pages.asStateFlow()
     
+    private val _pageRefs = MutableStateFlow<List<PageRef>>(emptyList())
     private val _showOverlay = MutableStateFlow(true)
     val showOverlay: StateFlow<Boolean> = _showOverlay.asStateFlow()
     
@@ -26,17 +41,43 @@ class ReaderViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     fun loadPages(mangaId: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                val mangaPages = repository.getMangaPages(mangaId)
+                val pageReferences = repository.openManga(mangaId)
+                _pageRefs.value = pageReferences
+                
+                // Convert to MangaPage for UI compatibility
+                val mangaPages = pageReferences.map { pageRef ->
+                    MangaPage(
+                        id = pageRef.id,
+                        mangaId = pageRef.mangaId,
+                        pageNumber = pageRef.pageNumber,
+                        imagePath = "stream://${pageRef.id}" // Special stream indicator
+                    )
+                }
+                
                 _pages.value = mangaPages
                 _currentPage.value = 0
             } catch (e: Exception) {
                 _pages.value = emptyList()
+                _pageRefs.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    suspend fun getPageStream(pageId: String): InputStream? {
+        val pageRef = _pageRefs.value.find { it.id == pageId }
+        return if (pageRef != null) {
+            try {
+                repository.getPageStream(pageRef.mangaId, pageRef)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
         }
     }
 
