@@ -52,11 +52,20 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Background)
     ) {
-        // Show empty state for testing
-        EmptyState(
-            onImportClick = viewModel::onImportClicked,
-            modifier = Modifier.align(Alignment.Center)
-        )
+        if (mangaList.isEmpty()) {
+            // Show empty state when no manga
+            EmptyState(
+                onImportClick = viewModel::onImportClicked,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else {
+            // Show manga grid when items exist
+            MangaGrid(
+                mangaList = mangaList,
+                onMangaClick = onMangaClick,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         
         // FAB with folder picker
         FloatingActionButton(
