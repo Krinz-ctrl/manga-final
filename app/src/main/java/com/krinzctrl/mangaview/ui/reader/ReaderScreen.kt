@@ -132,22 +132,11 @@ fun ReaderScreen(
                 )
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                state = listState,
-                contentPadding = PaddingValues(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                itemsIndexed(
-                    items = pages,
-                    key = { index, page -> page.id }
-                ) { index, page ->
-                    MangaPage(
-                        imagePath = page.imagePath,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+            MangaList(
+                pages = pages,
+                listState = listState,
+                modifier = Modifier.fillMaxSize()
+            )
         }
         
         // Persistent Page Indicator
@@ -182,7 +171,6 @@ private fun MangaPage(
     imagePath: String,
     modifier: Modifier = Modifier
 ) {
-    android.util.Log.d("MangaPage", "Rendering page: imagePath=$imagePath")
     AsyncImage(
         model = imagePath,
         contentDescription = "Manga Page",
@@ -190,9 +178,30 @@ private fun MangaPage(
         contentScale = ContentScale.Fit,
         onError = { error ->
             android.util.Log.e("MangaPage", "Image load failed: $imagePath", error.result.throwable)
-        },
-        onSuccess = { success ->
-            android.util.Log.d("MangaPage", "Image loaded successfully: $imagePath")
         }
     )
+}
+
+@Composable
+private fun MangaList(
+    pages: List<com.krinzctrl.mangaview.model.MangaPage>,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier,
+        state = listState,
+        contentPadding = PaddingValues(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        itemsIndexed(
+            items = pages,
+            key = { index, page -> page.id }
+        ) { index, page ->
+            MangaPage(
+                imagePath = page.imagePath,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }

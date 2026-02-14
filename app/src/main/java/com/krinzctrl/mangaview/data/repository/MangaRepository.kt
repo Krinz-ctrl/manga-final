@@ -212,7 +212,7 @@ class MangaRepository(
                             id = file.absolutePath,
                             mangaId = mangaId,
                             pageNumber = index + 1,
-                            imageUri = file.absolutePath, // Use absolute path for Coil
+                            imageUri = android.net.Uri.fromFile(file).toString(), // Use URI for Coil
                             entryName = file.name
                         )
                     }
@@ -295,7 +295,9 @@ class MangaRepository(
             val mangaEntity = _mangaLibrary.value.find { it.id == mangaId }
             if (mangaEntity != null && !mangaEntity.internalPath.isNullOrEmpty()) {
                 // Return stream for internal file
-                return@withContext FileInputStream(File(pageRef.imageUri))
+                val uri = Uri.parse(pageRef.imageUri)
+                val path = if (uri.scheme == "file") uri.path else pageRef.imageUri
+                return@withContext FileInputStream(File(path ?: pageRef.imageUri))
             }
 
             if (mangaEntity?.folderUri?.isNotEmpty() == true) {
