@@ -10,6 +10,7 @@ import com.krinzctrl.mangaview.data.storage.EncryptionManager
 import com.krinzctrl.mangaview.data.storage.FileStorageManager
 import com.krinzctrl.mangaview.data.storage.ArchiveReader
 import com.krinzctrl.mangaview.data.storage.ThumbnailGenerator
+import com.krinzctrl.mangaview.data.InMemoryStorage
 import com.krinzctrl.mangaview.data.storage.FolderReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -30,7 +31,8 @@ class MangaRepository(
     private val thumbnailGenerator: ThumbnailGenerator = ThumbnailGenerator(context)
 ) {
     
-    private val _mangaLibrary = MutableStateFlow<List<MangaEntity>>(emptyList())
+    // Share state via InMemoryStorage
+    private val _mangaLibrary = InMemoryStorage.mangaLibrary
     val mangaLibrary: Flow<List<MangaEntity>> = _mangaLibrary.asStateFlow()
     
     init {
