@@ -21,6 +21,7 @@ class ThumbnailGenerator(private val context: Context) {
      * Generate thumbnail from the first image in a folder
      */
     fun generateThumbnail(firstImage: DocumentFile): String? {
+        android.util.Log.d("ThumbnailGenerator", "generateThumbnail START uri=${firstImage.uri}")
         return try {
             // Open input stream from DocumentFile
             val inputStream = context.contentResolver.openInputStream(firstImage.uri)
@@ -32,6 +33,7 @@ class ThumbnailGenerator(private val context: Context) {
                     inJustDecodeBounds = true
                 }
                 BitmapFactory.decodeStream(stream, null, options)
+                android.util.Log.d("ThumbnailGenerator", "Original dimensions: ${options.outWidth}x${options.outHeight}")
                 
                 // Calculate sample size
                 options.inSampleSize = calculateInSampleSize(
@@ -47,19 +49,27 @@ class ThumbnailGenerator(private val context: Context) {
                 val bitmap = BitmapFactory.decodeStream(stream, null, options)
                     ?: return null
                 
+                android.util.Log.d("ThumbnailGenerator", "Bitmap decoded: ${bitmap.width}x${bitmap.height}")
+                
                 // Create thumbnail file
                 val thumbnailFile = File(context.filesDir, "thumbnails/${firstImage.name}_thumb.webp")
                 thumbnailFile.parentFile?.mkdirs()
                 
+                android.util.Log.d("ThumbnailGenerator", "Saving thumbnail to: ${thumbnailFile.absolutePath}")
+                
                 // Save as WEBP
                 FileOutputStream(thumbnailFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, THUMBNAIL_QUALITY, out)
+                    val success = bitmap.compress(Bitmap.CompressFormat.WEBP, THUMBNAIL_QUALITY, out)
+                    android.util.Log.d("ThumbnailGenerator", "Compress success: $success")
                 }
                 
                 bitmap.recycle()
-                thumbnailFile.absolutePath
+                val path = thumbnailFile.absolutePath
+                android.util.Log.d("ThumbnailGenerator", "Thumbnail saved: $path")
+                path
             }
         } catch (e: Exception) {
+            android.util.Log.e("ThumbnailGenerator", "Thumbnail generation FAILED", e)
             null
         }
     }

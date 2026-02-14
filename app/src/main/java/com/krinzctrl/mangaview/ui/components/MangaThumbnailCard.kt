@@ -25,6 +25,7 @@ fun MangaThumbnailCard(
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    android.util.Log.d("MangaThumbnailCard", "Rendering card: title=$title, thumbnailPath=$thumbnailPath")
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1f,
