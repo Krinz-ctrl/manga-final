@@ -126,10 +126,17 @@ private fun MangaPage(
     imagePath: String,
     modifier: Modifier = Modifier
 ) {
+    android.util.Log.d("MangaPage", "Rendering page: imagePath=$imagePath")
     AsyncImage(
         model = imagePath,
         contentDescription = "Manga Page",
         modifier = modifier,
-        contentScale = ContentScale.Fit
+        contentScale = ContentScale.Fit,
+        onError = { error ->
+            android.util.Log.e("MangaPage", "Image load failed: $imagePath", error.result.throwable)
+        },
+        onSuccess = { success ->
+            android.util.Log.d("MangaPage", "Image loaded successfully: $imagePath")
+        }
     )
 }

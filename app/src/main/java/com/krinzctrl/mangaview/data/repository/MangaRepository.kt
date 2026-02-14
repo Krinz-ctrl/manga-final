@@ -131,12 +131,14 @@ class MangaRepository(
             }
 
             val first = images.first()
-            val thumbnailPath = try {
+            val generatedThumbnail = try {
                 thumbnailGenerator.generateThumbnail(first)
             } catch (e: Exception) {
                 android.util.Log.e("MangaRepository", "Thumbnail generation failed", e)
-                ""
+                null
             }
+            
+            val finalThumbnailPath = generatedThumbnail ?: first.uri.toString()
 
             val mangaId = UUID.randomUUID().toString()
             val title = folderReader.getFolderName(context, uri)
@@ -144,7 +146,7 @@ class MangaRepository(
             val mangaEntity = MangaEntity(
                 id = mangaId,
                 title = title,
-                thumbnailPath = thumbnailPath ?: "",
+                thumbnailPath = finalThumbnailPath,
                 pageCount = images.size,
                 folderUri = uri.toString(),
                 encryptedFilePath = null,

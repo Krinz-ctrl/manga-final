@@ -44,15 +44,18 @@ class ReaderViewModel(
     private val _pageRefs = MutableStateFlow<List<PageRef>>(emptyList())
 
     fun loadPages(mangaId: String) {
+        android.util.Log.d("ReaderViewModel", "loadPages START mangaId=$mangaId")
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
                 // Try folder-based loading first
                 val pageReferences = repository.getFolderImages(mangaId)
+                android.util.Log.d("ReaderViewModel", "getFolderImages returned ${pageReferences.size} pages")
                 _pageRefs.value = pageReferences
                 
                 // Convert to MangaPage for UI compatibility
                 val mangaPages = pageReferences.map { pageRef ->
+                    android.util.Log.d("ReaderViewModel", "Converting pageRef: ${pageRef.imageUri}")
                     MangaPage(
                         id = pageRef.id,
                         mangaId = pageRef.mangaId,
@@ -63,11 +66,14 @@ class ReaderViewModel(
                 
                 _pages.value = mangaPages
                 _currentPage.value = 0
+                android.util.Log.d("ReaderViewModel", "Pages loaded: ${mangaPages.size} items")
             } catch (e: Exception) {
+                android.util.Log.e("ReaderViewModel", "loadPages FAILED", e)
                 _pages.value = emptyList()
                 _pageRefs.value = emptyList()
             } finally {
                 _isLoading.value = false
+                android.util.Log.d("ReaderViewModel", "loadPages END")
             }
         }
     }

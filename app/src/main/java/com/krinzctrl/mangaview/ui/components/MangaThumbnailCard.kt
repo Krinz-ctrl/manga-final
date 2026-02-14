@@ -12,8 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import coil.compose.AsyncImage
 import com.krinzctrl.mangaview.ui.theme.*
 
@@ -50,7 +53,9 @@ fun MangaThumbnailCard(
                 model = thumbnailPath,
                 contentDescription = title,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = rememberVectorPainter(Icons.Default.Warning),
+                placeholder = rememberVectorPainter(Icons.Default.Info)
             )
             
             if (isPressed) {
