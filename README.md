@@ -17,6 +17,21 @@ Get the latest version of the app here:
 
 [**Download Latest APK**](https://github.com/Krinz-ctrl/manga-final/releases/latest)
 
+## 📖 How it Works
+
+### 1. Import Your Manga
+Tap the **+** button on the home screen to open the system file picker. You can select:
+*   **Performance Mode (Folders)**: Select a folder containing image files (`.jpg`, `.png`, `.webp`). The app will copy these images into its private secure storage.
+*   **Archive Mode (.zip/.cbz)**: Select a compressed archive. The app will encrypt and import it securely.
+
+### 2. Private Storage
+Once imported, your manga is safely stored within the app's private directory. You can **delete the original files** from your phone's storage to save space, and your library will remain intact.
+
+### 3. Immersive Reading
+*   **Smart Indicator**: A page number indicator appears at the top when you scroll up or tap the screen.
+*   **Focus Mode**: As you read (scroll down), all UI elements—including the page indicator—automatically hide to provide a distraction-free experience.
+*   **Progress Tracking**: The app automatically remembers the last page you read for every manga.
+
 ## 🛠️ Tech Stack
 
 *   **Kotlin** & **Jetpack Compose**
