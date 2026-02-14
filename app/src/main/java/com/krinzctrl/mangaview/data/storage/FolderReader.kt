@@ -25,29 +25,37 @@ class FolderReader {
      * Read all images from a folder URI and return sorted DocumentFile list
      */
     fun readFolderImages(context: Context, uri: Uri): List<DocumentFile> {
+        android.util.Log.d("FolderReader", "readFolderImages(uri=$uri) START")
         return try {
-            val treeDocumentFile = DocumentFile.fromTreeUri(context, uri)
-                ?: return emptyList()
-            
-            // List all files in the folder
-            val allFiles = treeDocumentFile.listFiles()
-                ?: return emptyList()
-            
-            // Filter only image files
-            val imageFiles = allFiles.filter { file ->
-                file.type?.let { type -> 
-                    SUPPORTED_IMAGE_TYPES.contains(type.lowercase())
-                } ?: false || 
-                SUPPORTED_EXTENSIONS.any { ext ->
-                    file.name?.lowercase()?.endsWith(ext) == true
-                }
+            val tree = DocumentFile.fromTreeUri(context, uri)
+            if (tree == null) {
+                android.util.Log.e("FolderReader", "fromTreeUri returned null for uri=$uri")
+                return emptyList()
             }
-            
-            // Sort by name ascending (001.jpg, 002.jpg, etc.)
-            imageFiles.sortedBy { it.name?.lowercase() ?: "" }
-            
+
+            val all = tree.listFiles().toList()
+            android.util.Log.d("FolderReader", "listFiles count=${all.size} uri=$uri")
+
+            val images = all
+                .asSequence()
+                .filter { it.isFile }
+                .filter { file ->
+                    val mimeOk = file.type?.lowercase()?.let { SUPPORTED_IMAGE_TYPES.contains(it) } == true
+                    val nameOk = file.name
+                        ?.lowercase()
+                        ?.let { name -> SUPPORTED_EXTENSIONS.any { ext -> name.endsWith(ext) } } == true
+                    mimeOk || nameOk
+                }
+                .sortedBy { it.name?.lowercase().orEmpty() }
+                .toList()
+
+            android.util.Log.d("FolderReader", "filtered image count=${images.size} uri=$uri")
+            images
         } catch (e: Exception) {
+            android.util.Log.e("FolderReader", "readFolderImages FAILED uri=$uri", e)
             emptyList()
+        } finally {
+            android.util.Log.d("FolderReader", "readFolderImages END uri=$uri")
         }
     }
     
@@ -56,20 +64,9 @@ class FolderReader {
      */
     fun getFolderName(context: Context, uri: Uri): String {
         return try {
-            context.contentResolver.query(
-                uri,
-                arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME),
-                null,
-                null,
-                null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    cursor.getString(0)
-                } else {
-                    "Imported Manga"
-                }
-            } ?: "Imported Manga"
-        } catch (e: Exception) {
+            val doc = DocumentFile.fromTreeUri(context, uri)
+            doc?.name ?: "Imported Manga"
+        } catch (_: Exception) {
             "Imported Manga"
         }
     }

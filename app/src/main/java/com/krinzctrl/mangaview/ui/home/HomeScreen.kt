@@ -41,7 +41,10 @@ fun HomeScreen(
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
-        uri?.let { viewModel.importFolder(it) }
+        android.util.Log.d("HomeScreen", "OpenDocumentTree result uri=$uri")
+        uri?.let { picked ->
+            viewModel.importFolder(picked)
+        }
     }
     
     Box(

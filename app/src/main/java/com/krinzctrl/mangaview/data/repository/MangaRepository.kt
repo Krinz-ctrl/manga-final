@@ -10,6 +10,7 @@ import com.krinzctrl.mangaview.data.storage.EncryptionManager
 import com.krinzctrl.mangaview.data.storage.FileStorageManager
 import com.krinzctrl.mangaview.data.storage.ArchiveReader
 import com.krinzctrl.mangaview.data.storage.ThumbnailGenerator
+import com.krinzctrl.mangaview.data.storage.FolderReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -108,72 +109,60 @@ class MangaRepository(
      * Import manga from folder containing images
      */
     suspend fun importFolder(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
+        android.util.Log.d("MangaRepository", "importFolder(uri=$uri) START")
         try {
-            // Persist URI permission
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            
-            // Read images from folder
-            val treeDocumentFile = DocumentFile.fromTreeUri(context, uri)
-                ?: return@withContext Result.failure(Exception("Failed to access folder"))
-                
-            val allFiles = treeDocumentFile?.listFiles()
-                ?: return@withContext Result.failure(Exception("Failed to list files"))
-                
-            // Filter only image files
-            val supportedImageTypes = setOf("image/jpeg", "image/jpg", "image/png", "image/webp")
-            val supportedExtensions = setOf(".jpg", ".jpeg", ".png", ".webp")
-            
-            val imageFiles = allFiles.filter { file ->
-                file.type?.let { type -> 
-                    supportedImageTypes.contains(type.lowercase())
-                } ?: false || 
-                        supportedExtensions.any { ext ->
-                            file.name?.lowercase()?.endsWith(ext) == true
-                        }
-                }
-                
-                // Sort by name ascending (001.jpg, 002.jpg, etc.)
-                val sortedFiles = imageFiles.sortedBy { it.name?.lowercase() ?: "" }
-                
-                if (sortedFiles.isEmpty()) {
-                    return@withContext Result.failure(Exception("No images found in folder"))
-                }
-            
-            // Generate thumbnail from first image
-            val firstImage = sortedFiles.firstOrNull()
-            val thumbnailPath = if (firstImage != null) {
-                thumbnailGenerator.generateThumbnail(firstImage)
-            } else {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                android.util.Log.d("MangaRepository", "Persistable permission granted for uri=$uri")
+            } catch (se: SecurityException) {
+                android.util.Log.e("MangaRepository", "takePersistableUriPermission failed for uri=$uri", se)
+                // Continue; sometimes picker grants transient permission, but this may break later reads.
+            }
+
+            val folderReader = FolderReader()
+            val images = folderReader.readFolderImages(context, uri)
+            android.util.Log.d("MangaRepository", "Folder images count=${images.size} uri=$uri")
+
+            if (images.isEmpty()) {
+                return@withContext Result.failure(IllegalStateException("No images found in folder"))
+            }
+
+            val first = images.first()
+            val thumbnailPath = try {
+                thumbnailGenerator.generateThumbnail(first)
+            } catch (e: Exception) {
+                android.util.Log.e("MangaRepository", "Thumbnail generation failed", e)
                 ""
             }
-            
-            // Create manga entity
+
             val mangaId = UUID.randomUUID().toString()
-            val folderName = "Imported Manga"
-            
+            val title = folderReader.getFolderName(context, uri)
+
             val mangaEntity = MangaEntity(
                 id = mangaId,
-                title = folderName,
+                title = title,
                 thumbnailPath = thumbnailPath ?: "",
-                pageCount = sortedFiles.size,
+                pageCount = images.size,
                 folderUri = uri.toString(),
                 encryptedFilePath = null,
                 addedDate = System.currentTimeMillis(),
                 lastReadDate = null,
                 currentPage = 0
             )
-            
-            // Add to library
-            val currentLibrary = _mangaLibrary.value.toMutableList()
-            currentLibrary.add(mangaEntity)
-            _mangaLibrary.value = currentLibrary
-            
+
+            val newList = _mangaLibrary.value.toMutableList().apply { add(mangaEntity) }.toList()
+            _mangaLibrary.value = newList
+            android.util.Log.d("MangaRepository", "Library updated. newSize=${newList.size} addedId=$mangaId")
+
             Result.success(mangaId)
         } catch (e: Exception) {
+            android.util.Log.e("MangaRepository", "importFolder FAILED", e)
             Result.failure(e)
+        } finally {
+            android.util.Log.d("MangaRepository", "importFolder END uri=$uri")
         }
     }
     

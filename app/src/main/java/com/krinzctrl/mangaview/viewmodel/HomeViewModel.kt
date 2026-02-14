@@ -73,22 +73,24 @@ class HomeViewModel(
     }
     
     fun importFolder(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
+            android.util.Log.d("HomeViewModel", "importFolder(uri=$uri) START")
             _isLoading.value = true
             try {
-                val result = repository.importFolder(uri)
+                val result = withContext(Dispatchers.IO) {
+                    repository.importFolder(uri)
+                }
                 if (result.isSuccess) {
+                    android.util.Log.d("HomeViewModel", "importFolder SUCCESS id=${result.getOrNull()}")
                     onImportSheetDismissed()
-                    // Library will be updated automatically via Flow
                 } else {
-                    // Handle error - could show toast or snackbar
-                    result.exceptionOrNull()?.printStackTrace()
+                    android.util.Log.e("HomeViewModel", "importFolder FAILED", result.exceptionOrNull())
                 }
             } catch (e: Exception) {
-                // Handle error - could show toast or snackbar
-                e.printStackTrace()
+                android.util.Log.e("HomeViewModel", "importFolder EXCEPTION", e)
             } finally {
                 _isLoading.value = false
+                android.util.Log.d("HomeViewModel", "importFolder END")
             }
         }
     }
