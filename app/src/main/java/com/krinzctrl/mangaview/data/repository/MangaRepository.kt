@@ -11,6 +11,7 @@ import com.krinzctrl.mangaview.data.storage.FileStorageManager
 import com.krinzctrl.mangaview.data.storage.ArchiveReader
 import com.krinzctrl.mangaview.data.storage.ThumbnailGenerator
 import com.krinzctrl.mangaview.data.InMemoryStorage
+import com.krinzctrl.mangaview.data.storage.InternalStorageManager
 import com.krinzctrl.mangaview.data.storage.FolderReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -28,7 +29,8 @@ class MangaRepository(
     private val encryptionManager: EncryptionManager,
     private val fileStorageManager: FileStorageManager,
     private val archiveReader: ArchiveReader,
-    private val thumbnailGenerator: ThumbnailGenerator = ThumbnailGenerator(context)
+    private val thumbnailGenerator: ThumbnailGenerator = ThumbnailGenerator(context),
+    private val internalStorageManager: InternalStorageManager = InternalStorageManager(context)
 ) {
     
     // Share state via InMemoryStorage
@@ -90,6 +92,7 @@ class MangaRepository(
                 thumbnailPath = thumbnailFile.absolutePath,
                 pageCount = pageCount,
                 folderUri = "",
+                internalPath = null,
                 encryptedFilePath = encryptedFile.absolutePath
             )
             
@@ -132,17 +135,38 @@ class MangaRepository(
                 return@withContext Result.failure(IllegalStateException("No images found in folder"))
             }
 
-            val first = images.first()
+            // PROCEED TO COPY IMAGES TO INTERNAL STORAGE
+            val mangaId = UUID.randomUUID().toString()
+            val internalDir = internalStorageManager.getMangaInternalDir(mangaId)
+            
+            android.util.Log.d("MangaRepository", "Copying images to internal storage: ${internalDir.absolutePath}")
+            val copiedFiles = mutableListOf<File>()
+            
+            images.forEachIndexed { index, docFile ->
+                val name = docFile.name ?: "image_$index.jpg"
+                val destFile = File(internalDir, name)
+                internalStorageManager.copySafImageToInternal(docFile.uri, destFile)
+                copiedFiles.add(destFile)
+            }
+            
+            // Generate thumbnail from the FIRST COPIED internal image
             val generatedThumbnail = try {
-                thumbnailGenerator.generateThumbnail(first)
+                if (copiedFiles.isNotEmpty()) {
+                    val firstFile = copiedFiles.first()
+                    // Create a DocumentFile wrapper for the existing utility
+                    val firstDocFile = DocumentFile.fromFile(firstFile)
+                    thumbnailGenerator.generateThumbnail(firstDocFile)
+                } else {
+                     null
+                }
             } catch (e: Exception) {
                 android.util.Log.e("MangaRepository", "Thumbnail generation failed", e)
                 null
             }
             
-            val finalThumbnailPath = generatedThumbnail ?: first.uri.toString()
+            // Fallback to first original URI if generation failed (though internal copy is preferred)
+            val finalThumbnailPath = generatedThumbnail ?: (if (copiedFiles.isNotEmpty()) copiedFiles.first().absolutePath else images.first().uri.toString())
 
-            val mangaId = UUID.randomUUID().toString()
             val title = folderReader.getFolderName(context, uri)
 
             val mangaEntity = MangaEntity(
@@ -151,6 +175,7 @@ class MangaRepository(
                 thumbnailPath = finalThumbnailPath,
                 pageCount = images.size,
                 folderUri = uri.toString(),
+                internalPath = internalDir.absolutePath, // Store internal path
                 encryptedFilePath = null,
                 addedDate = System.currentTimeMillis(),
                 lastReadDate = null,
@@ -171,13 +196,30 @@ class MangaRepository(
     }
     
     /**
-     * Get folder images for reader
+     * Get folder images for reader - Prefers internal storage
      */
     suspend fun getFolderImages(mangaId: String): List<PageRef> = withContext(Dispatchers.IO) {
         try {
             val mangaEntity = _mangaLibrary.value.find { it.id == mangaId }
                 ?: return@withContext emptyList()
             
+            // CHECK INTERNAL PATH FIRST
+            if (!mangaEntity.internalPath.isNullOrEmpty()) {
+                val internalImages = internalStorageManager.getInternalMangaImages(mangaEntity.internalPath)
+                if (internalImages.isNotEmpty()) {
+                     return@withContext internalImages.mapIndexed { index, file ->
+                        PageRef(
+                            id = file.absolutePath,
+                            mangaId = mangaId,
+                            pageNumber = index + 1,
+                            imageUri = file.absolutePath, // Use absolute path for Coil
+                            entryName = file.name
+                        )
+                    }
+                }
+            }
+            
+            // FALLBACK TO LEGACY FOLDER URI
             if (mangaEntity.folderUri.isEmpty()) {
                 return@withContext emptyList()
             }
@@ -251,6 +293,11 @@ class MangaRepository(
         try {
             // Check if it's a folder-based manga
             val mangaEntity = _mangaLibrary.value.find { it.id == mangaId }
+            if (mangaEntity != null && !mangaEntity.internalPath.isNullOrEmpty()) {
+                // Return stream for internal file
+                return@withContext FileInputStream(File(pageRef.imageUri))
+            }
+
             if (mangaEntity?.folderUri?.isNotEmpty() == true) {
                 // Return direct URI for folder images
                 return@withContext context.contentResolver.openInputStream(Uri.parse(pageRef.imageUri))

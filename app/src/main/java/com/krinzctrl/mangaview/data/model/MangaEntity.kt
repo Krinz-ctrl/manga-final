@@ -6,6 +6,7 @@ data class MangaEntity(
     val thumbnailPath: String,
     val pageCount: Int,
     val folderUri: String, // Store folder URI instead of encrypted file path
+    val internalPath: String? = null, // Path to internal storage copy
     val encryptedFilePath: String? = null, // Keep for backward compatibility
     val addedDate: Long = System.currentTimeMillis(),
     val lastReadDate: Long? = null,

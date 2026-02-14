@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.krinzctrl.mangaview.data.model.PageRef
 import com.krinzctrl.mangaview.data.repository.MangaRepository
 import com.krinzctrl.mangaview.data.storage.EncryptionManager
+import com.krinzctrl.mangaview.data.storage.InternalStorageManager
 import com.krinzctrl.mangaview.data.storage.FileStorageManager
 import com.krinzctrl.mangaview.data.storage.ArchiveReader
 import com.krinzctrl.mangaview.model.MangaPage
@@ -26,7 +27,8 @@ class ReaderViewModel(
         context = application,
         encryptionManager = EncryptionManager(application),
         fileStorageManager = FileStorageManager(application),
-        archiveReader = ArchiveReader(application)
+        archiveReader = ArchiveReader(application),
+        internalStorageManager = InternalStorageManager(application)
     )
     
     private val _currentPage = MutableStateFlow(0)
